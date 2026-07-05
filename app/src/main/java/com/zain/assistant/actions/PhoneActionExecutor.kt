@@ -141,7 +141,7 @@ class PhoneActionExecutor(private val context: Context) {
 
     fun openCalendar(): String {
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = ContentUris.appendId(Uri.parse("content://com.android.calendar/time"), System.currentTimeMillis()).build()
+            data = ContentUris.appendId(Uri.parse("content://com.android.calendar/time").buildUpon(), System.currentTimeMillis()).build()
         }
         return startActivitySafely(intent, "I couldn't open the calendar.")
             .let { if (it == "Done.") "Opening Calendar." else it }

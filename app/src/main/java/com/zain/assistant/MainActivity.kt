@@ -7,6 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.zain.assistant.service.VoiceForegroundService
 import com.zain.assistant.ui.navigation.ZainNavGraph
 import com.zain.assistant.ui.theme.ZainAssistantTheme
