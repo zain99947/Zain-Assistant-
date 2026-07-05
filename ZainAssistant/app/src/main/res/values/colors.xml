@@ -1,0 +1,11 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="deep_space">#FF060A14</color>
+    <color name="midnight_blue">#FF0B1330</color>
+    <color name="electric_blue">#FF2D6CFF</color>
+    <color name="cyan_glow">#FF35F2E0</color>
+    <color name="cyan_glow_soft">#8035F2E0</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="surface_dark">#FF10162A</color>
+    <color name="danger">#FFFF5A5A</color>
+</resources>

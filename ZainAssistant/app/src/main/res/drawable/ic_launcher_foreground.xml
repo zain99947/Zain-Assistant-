@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/vector"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer glow ring -->
+    <path
+        android:pathData="M54,20 A34,34 0 1,1 53.9,20 Z"
+        android:strokeWidth="2.4"
+        android:strokeColor="#7035F2E0"
+        android:fillColor="#00000000" />
+
+    <!-- Inner core circle (AI face silhouette) -->
+    <path android:pathData="M54,32 A22,22 0 1,1 53.9,32 Z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="20"
+                android:endX="80"
+                android:endY="90"
+                android:startColor="#FF2D6CFF"
+                android:endColor="#FF35F2E0" />
+        </aapt:attr>
+    </path>
+
+    <!-- Eyes -->
+    <path android:pathData="M45,50 a3.2,3.2 0 1,1 -0.1,0 Z" android:fillColor="#FF03050C" />
+    <path android:pathData="M63,50 a3.2,3.2 0 1,1 -0.1,0 Z" android:fillColor="#FF03050C" />
+
+    <!-- Mic body -->
+    <path
+        android:pathData="M54,58 m-6,0 a6,6 0 1,1 12,0 l0,14 a6,6 0 1,1 -12,0 z"
+        android:fillColor="#FF03050C" />
+    <!-- Mic stand -->
+    <path
+        android:pathData="M42,70 a12,12 0 0,0 24,0"
+        android:strokeWidth="3"
+        android:strokeColor="#FF03050C"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M54,82 L54,88"
+        android:strokeWidth="3"
+        android:strokeColor="#FF03050C" />
+    <path
+        android:pathData="M47,88 L61,88"
+        android:strokeWidth="3"
+        android:strokeColor="#FF03050C" />
+
+    <!-- Cyan glow accents -->
+    <path
+        android:pathData="M20,54 L28,54"
+        android:strokeWidth="3"
+        android:strokeColor="#FF35F2E0" />
+    <path
+        android:pathData="M80,54 L88,54"
+        android:strokeWidth="3"
+        android:strokeColor="#FF35F2E0" />
+</vector>

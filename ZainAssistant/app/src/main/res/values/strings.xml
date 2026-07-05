@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Zain Assistant</string>
+    <string name="app_subtitle">Your Personal AI Assistant</string>
+    <string name="default_wake_word">hey zain</string>
+    <string name="notification_channel_name">Zain Voice Service</string>
+    <string name="notification_channel_desc">Keeps Zain listening in the background</string>
+    <string name="notification_listening_title">Zain is listening</string>
+    <string name="notification_listening_text">Say \"Hey Zain\" to start a command</string>
+</resources>

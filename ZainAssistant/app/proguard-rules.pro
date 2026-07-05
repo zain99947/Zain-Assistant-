@@ -1,0 +1,3 @@
+-keep class com.zain.assistant.data.remote.** { *; }
+-keepattributes *Annotation*
+-dontwarn kotlinx.serialization.**
