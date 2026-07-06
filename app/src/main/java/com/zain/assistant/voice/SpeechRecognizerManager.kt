@@ -3,6 +3,8 @@ package com.zain.assistant.voice
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -13,20 +15,15 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.Locale
 
 enum class ListeningState { IDLE, LISTENING_FOR_WAKE_WORD, LISTENING_FOR_COMMAND, PROCESSING, SPEAKING, ERROR }
 
 /**
  * Manages Android's on-device SpeechRecognizer in a continuously-restarting loop to
- * approximate always-on wake-word listening ("Hey Zain"). This is a pragmatic, no-extra-
- * dependency approach: recognized phrases are checked for the wake word; if found, the
- * remainder (or the next recognized utterance) is treated as the command.
- *
- * Note: true low-power always-on wake-word detection (e.g. via Porcupine) runs a small
- * dedicated model instead of the full speech recognizer and uses far less battery. This
- * class documents that trade-off and can be swapped for such an engine later without
- * changing the public API (start/stop/state/results flows).
+ * approximate always-on wake-word listening ("Hey Zain"). A single SpeechRecognizer
+ * instance is reused across cycles (rather than destroyed and recreated every time) and
+ * restarts are given a short delay — some OEM speech services (notably Samsung/One UI)
+ * silently fail if a new recognition request starts immediately after the previous ends.
  */
 class SpeechRecognizerManager(private val context: Context) {
 
@@ -35,6 +32,9 @@ class SpeechRecognizerManager(private val context: Context) {
     private var isCommandMode = false
     private var shouldContinue = false
     private var language: String = "en-US"
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingRestart: Runnable? = null
 
     private val _state = MutableStateFlow(ListeningState.IDLE)
     val state: StateFlow<ListeningState> = _state.asStateFlow()
@@ -60,32 +60,30 @@ class SpeechRecognizerManager(private val context: Context) {
         }
         shouldContinue = true
         isCommandMode = false
-        listenCycle()
+        ensureRecognizerCreated()
+        beginListening()
     }
 
     fun stop() {
         shouldContinue = false
-        recognizer?.stopListening()
+        cancelPendingRestart()
+        recognizer?.cancel()
         recognizer?.destroy()
         recognizer = null
         _state.value = ListeningState.IDLE
     }
 
-    /** Call this to force the next recognition cycle to treat speech as a direct command
-     *  (used when the user taps the mic button instead of relying on the wake word). */
     fun listenForCommandNow() {
         shouldContinue = true
         isCommandMode = true
-        recognizer?.stopListening()
-        recognizer?.destroy()
-        recognizer = null
-        listenCycle()
+        ensureRecognizerCreated()
+        cancelPendingRestart()
+        recognizer?.cancel()
+        scheduleRestart(150)
     }
 
-    private fun listenCycle() {
-        if (!shouldContinue) return
-
-        recognizer?.destroy()
+    private fun ensureRecognizerCreated() {
+        if (recognizer != null) return
         recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
@@ -100,8 +98,8 @@ class SpeechRecognizerManager(private val context: Context) {
                 }
 
                 override fun onError(error: Int) {
-                    // Restart the cycle to keep the "continuous listening" behavior alive.
-                    if (shouldContinue) listenCycle() else _state.value = ListeningState.IDLE
+                    Log.w(TAG, "SpeechRecognizer error code: $error")
+                    if (shouldContinue) scheduleRestart(400) else _state.value = ListeningState.IDLE
                 }
 
                 override fun onResults(results: Bundle?) {
@@ -118,50 +116,69 @@ class SpeechRecognizerManager(private val context: Context) {
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
         }
+    }
+
+    private fun beginListening() {
+        if (!shouldContinue) return
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
         }
 
         try {
             recognizer?.startListening(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start recognizer", e)
-            if (shouldContinue) listenCycle()
+            if (shouldContinue) scheduleRestart(500)
         }
+    }
+
+    private fun scheduleRestart(delayMillis: Long) {
+        cancelPendingRestart()
+        val runnable = Runnable {
+            if (shouldContinue) beginListening()
+        }
+        pendingRestart = runnable
+        mainHandler.postDelayed(runnable, delayMillis)
+    }
+
+    private fun cancelPendingRestart() {
+        pendingRestart?.let { mainHandler.removeCallbacks(it) }
+        pendingRestart = null
     }
 
     private fun handleRecognized(text: String) {
         if (text.isBlank()) {
-            if (shouldContinue) listenCycle()
+            if (shouldContinue) scheduleRestart(200)
             return
         }
         val lower = text.lowercase()
 
         if (isCommandMode) {
-            // Already primed for a command (e.g. user tapped the mic button).
             isCommandMode = false
             _recognizedCommand.tryEmit(text)
+            if (shouldContinue) scheduleRestart(200)
             return
         }
 
         if (lower.contains(wakeWord)) {
             val remainder = lower.substringAfter(wakeWord).trim()
             if (remainder.isNotBlank()) {
-                // "Hey Zain, call Ali" said in one breath.
                 _recognizedCommand.tryEmit(remainder)
+                if (shouldContinue) scheduleRestart(200)
+                return
             } else {
-                // Wake word alone — listen again immediately for the actual command.
                 isCommandMode = true
-                if (shouldContinue) listenCycle()
+                if (shouldContinue) scheduleRestart(150)
                 return
             }
         }
 
-        if (shouldContinue) listenCycle()
+        if (shouldContinue) scheduleRestart(200)
     }
 
     companion object {
