@@ -36,7 +36,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val chatRepository = ChatRepository(historyStore, settingsRepository)
     private val commandExecutor = CommandExecutor(application)
 
-    private val speechManager = SpeechRecognizerManager(application)
+    private val speechManager = SpeechRecognizerManager.getInstance(application)
     private val ttsManager = TextToSpeechManager(application)
 
     private val _statusText = MutableStateFlow("Tap the mic or say \"Hey Zain\"")
@@ -117,7 +117,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     override fun onCleared() {
-        speechManager.stop()
         ttsManager.shutdown()
         super.onCleared()
     }

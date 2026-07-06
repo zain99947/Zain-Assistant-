@@ -74,6 +74,7 @@ class SpeechRecognizerManager(private val context: Context) {
     /** Call this to force the next recognition cycle to treat speech as a direct command
      *  (used when the user taps the mic button instead of relying on the wake word). */
     fun listenForCommandNow() {
+        shouldContinue = true
         isCommandMode = true
         recognizer?.stopListening()
         recognizer?.destroy()
@@ -165,5 +166,14 @@ class SpeechRecognizerManager(private val context: Context) {
 
     companion object {
         private const val TAG = "SpeechRecognizerManager"
+
+        @Volatile
+        private var instance: SpeechRecognizerManager? = null
+
+        fun getInstance(context: Context): SpeechRecognizerManager {
+            return instance ?: synchronized(this) {
+                instance ?: SpeechRecognizerManager(context.applicationContext).also { instance = it }
+            }
+        }
     }
 }

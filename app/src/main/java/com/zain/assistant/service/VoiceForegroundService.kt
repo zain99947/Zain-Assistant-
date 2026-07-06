@@ -21,7 +21,7 @@ class VoiceForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        recognizerManager = SpeechRecognizerManager(applicationContext)
+        recognizerManager = SpeechRecognizerManager.getInstance(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
